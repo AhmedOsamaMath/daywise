@@ -529,7 +529,7 @@
                         {% if task.has_subtasks %}
                         <div class="mt-2 pl-10 space-y-2">
                             <!-- Subtask List -->
-                            {% for subtask in task.subtasks %}
+                            {% for subtask in task._sorted_subtasks %}
                             <div class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out border dark:border-gray-700 
                                 {% if subtask.is_completed %}
                                     bg-green-50/50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30 opacity-70

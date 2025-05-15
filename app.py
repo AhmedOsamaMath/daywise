@@ -236,6 +236,14 @@ def dashboard():
     # Sort tasks
     sorted_tasks = sort_tasks(tasks)
     
+    # For each task, sort its subtasks by order_index
+    for task in sorted_tasks:
+        # Convert lazy-loaded subtasks to a sorted list
+        subtasks_incomplete = Subtask.query.filter_by(task_id=task.id, is_completed=False).order_by(Subtask.order_index).all()
+        subtasks_complete = Subtask.query.filter_by(task_id=task.id, is_completed=True).order_by(Subtask.order_index).all()
+        # Replace the lazy-loaded relationship with our sorted list
+        task._sorted_subtasks = subtasks_incomplete + subtasks_complete
+    
     return render_template(
         'dashboard.html', 
         tasks=sorted_tasks,
