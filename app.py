@@ -64,6 +64,7 @@ class Task(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    subtasks = db.relationship('Subtask', backref='parent_task', lazy='dynamic', cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
@@ -75,6 +76,35 @@ class Task(db.Model):
             'timeBlock': self.time_block,
             'orderIndex': self.order_index,
             'categoryId': self.category_id
+        }
+    
+    @property
+    def subtask_count(self):
+        return self.subtasks.count()
+    
+    @property
+    def completed_subtask_count(self):
+        return self.subtasks.filter_by(is_completed=True).count()
+        
+    @property
+    def has_subtasks(self):
+        return self.subtask_count > 0
+
+class Subtask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(200), nullable=False)
+    is_completed = db.Column(db.Boolean, default=False)
+    order_index = db.Column(db.Integer, default=0)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'description': self.description,
+            'isCompleted': self.is_completed,
+            'orderIndex': self.order_index,
+            'taskId': self.task_id
         }
 
 @login_manager.user_loader
@@ -294,7 +324,91 @@ def add_task():
 def toggle_task(task_id):
     task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
     task.is_completed = not task.is_completed
+    
+    # If marking task as complete, also mark all subtasks as complete
+    if task.is_completed and task.has_subtasks:
+        for subtask in task.subtasks:
+            subtask.is_completed = True
+    
     db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/add_subtask/<int:task_id>', methods=['POST'])
+@login_required
+def add_subtask(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    description = request.form.get('subtask_description')
+    
+    if not description:
+        flash('Please enter a valid subtask description.')
+        return redirect(url_for('dashboard'))
+    
+    # Get the highest order_index for the task's subtasks
+    highest_order = db.session.query(db.func.max(Subtask.order_index)).filter_by(task_id=task_id).scalar() or 0
+    
+    new_subtask = Subtask(
+        description=description,
+        task_id=task_id,
+        order_index=highest_order + 1
+    )
+    
+    db.session.add(new_subtask)
+    
+    # If parent task is marked complete, mark it incomplete since we added a new subtask
+    if task.is_completed:
+        task.is_completed = False
+    
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/toggle_subtask/<int:subtask_id>', methods=['POST'])
+@login_required
+def toggle_subtask(subtask_id):
+    subtask = Subtask.query.join(Task).filter(Subtask.id == subtask_id, Task.user_id == current_user.id).first_or_404()
+    subtask.is_completed = not subtask.is_completed
+    
+    # Update parent task completion status based on subtasks
+    parent_task = subtask.parent_task
+    
+    # If all subtasks are complete, mark parent as complete
+    if parent_task.subtask_count == parent_task.completed_subtask_count:
+        parent_task.is_completed = True
+    else:
+        parent_task.is_completed = False
+    
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit_subtask/<int:subtask_id>', methods=['POST'])
+@login_required
+def edit_subtask(subtask_id):
+    subtask = Subtask.query.join(Task).filter(Subtask.id == subtask_id, Task.user_id == current_user.id).first_or_404()
+    description = request.form.get('description')
+    
+    if not description:
+        flash('Please enter a valid subtask description.')
+        return redirect(url_for('dashboard'))
+    
+    subtask.description = description
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/delete_subtask/<int:subtask_id>', methods=['POST'])
+@login_required
+def delete_subtask(subtask_id):
+    subtask = Subtask.query.join(Task).filter(Subtask.id == subtask_id, Task.user_id == current_user.id).first_or_404()
+    
+    # Store parent task reference before deleting subtask
+    parent_task = subtask.parent_task
+    
+    db.session.delete(subtask)
+    db.session.commit()
+    
+    # After deleting, check if all remaining subtasks are complete to update parent task status
+    if parent_task.subtask_count > 0 and parent_task.subtask_count == parent_task.completed_subtask_count:
+        parent_task.is_completed = True
+        db.session.commit()
+    
     return redirect(url_for('dashboard'))
 
 @app.route('/edit_task/<int:task_id>', methods=['POST'])
@@ -343,6 +457,9 @@ def reset_all_tasks():
     tasks = Task.query.filter_by(user_id=current_user.id).all()
     for task in tasks:
         task.is_completed = False
+        # Also reset all subtasks
+        for subtask in task.subtasks:
+            subtask.is_completed = False
     db.session.commit()
     return redirect(url_for('dashboard'))
 
