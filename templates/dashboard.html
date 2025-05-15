@@ -530,7 +530,7 @@
                         <div class="mt-2 pl-10 space-y-2">
                             <!-- Subtask List -->
                             {% for subtask in task._sorted_subtasks %}
-                            <div class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out border dark:border-gray-700 
+                            <div class="flex items-center justify-between px-2 py-1 rounded-md transition duration-150 ease-in-out border dark:border-gray-700 
                                 {% if subtask.is_completed %}
                                     bg-green-50/50 dark:bg-green-900/20 border-green-100 dark:border-green-800/30 opacity-70
                                 {% else %}
@@ -563,7 +563,7 @@
                                         <form action="{{ url_for('move_subtask_up', subtask_id=subtask.id) }}" method="POST" class="flex-shrink-0">
                                             <button 
                                                 type="submit" 
-                                                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0.5 transition"
+                                                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0 transition"
                                                 aria-label="Move subtask up: {{ subtask.description }}"
                                                 {% if subtask.is_completed %}disabled{% endif %}
                                             >
@@ -575,7 +575,7 @@
                                         <form action="{{ url_for('move_subtask_down', subtask_id=subtask.id) }}" method="POST" class="flex-shrink-0">
                                             <button 
                                                 type="submit" 
-                                                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0.5 transition"
+                                                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0 transition"
                                                 aria-label="Move subtask down: {{ subtask.description }}"
                                                 {% if subtask.is_completed %}disabled{% endif %}
                                             >
