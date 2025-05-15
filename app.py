@@ -29,7 +29,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    dark_mode = db.Column(db.Boolean, default=False)
+    dark_mode = db.Column(db.Boolean, default=True)
     tasks = db.relationship('Task', backref='user', lazy='dynamic')
     categories = db.relationship('Category', backref='user', lazy='dynamic')
     
@@ -188,8 +188,8 @@ def register():
         sample_tasks = [
             Task(description='Morning workout', estimated_time=45, is_completed=False, priority='medium', time_block='morning', user=new_user, category=health_category, order_index=1),
             Task(description='Team meeting', estimated_time=60, is_completed=False, priority='high', time_block='morning', user=new_user, category=work_category, order_index=2),
-            Task(description='Work on Project X', estimated_time=120, is_completed=False, priority='high', time_block='afternoon', user=new_user, category=work_category, order_index=3),
-            Task(description='Read documentation', estimated_time=30, is_completed=True, priority='low', time_block='any', user=new_user, category=learning_category, order_index=4)
+            Task(description='Work on Project X', estimated_time=120, is_completed=True, priority='high', time_block='afternoon', user=new_user, category=work_category, order_index=3),
+            Task(description='Read documentation', estimated_time=30, is_completed=False, priority='low', time_block='any', user=new_user, category=learning_category, order_index=4)
         ]
         
         db.session.add(new_user)
@@ -197,7 +197,24 @@ def register():
             db.session.add(category)
         for task in sample_tasks:
             db.session.add(task)
+            
+        # We need to commit first to get task IDs assigned
         db.session.commit()
+        
+        # Now add the sample subtasks with correct task IDs
+        team_meeting_task = Task.query.filter_by(description='Team meeting', user_id=new_user.id).first()
+        project_task = Task.query.filter_by(description='Work on Project X', user_id=new_user.id).first()
+        
+        if team_meeting_task and project_task:
+            sample_subtasks = [
+                Subtask(description='Prepare meeting agenda', is_completed=False, order_index=1, task_id=team_meeting_task.id),
+                Subtask(description='Send meeting invites', is_completed=True, order_index=2, task_id=team_meeting_task.id),
+                Subtask(description='Setup frontend components', is_completed=True, order_index=1, task_id=project_task.id)
+            ]
+            
+            for subtask in sample_subtasks:
+                db.session.add(subtask)
+            db.session.commit()
         
         login_user(new_user)
         return redirect(url_for('dashboard'))
