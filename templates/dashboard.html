@@ -286,13 +286,13 @@
                         <label for="task-priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
                         <select id="task-priority" name="priority" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                             {% for key, value in PRIORITIES.items() %}
-                                <option value="{{ key }}">{{ value }}</option>
+                                <option value="{{ key }}" {% if key == 'medium' %}selected{% endif %}>{{ value }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
                         <label for="task-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Est. Time (min)</label>
-                        <input id="task-time" name="estimated_time" type="number" placeholder="e.g., 60" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" min="5" max="600" step="5" required>
+                        <input id="task-time" name="estimated_time" type="number" placeholder="e.g., 60" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" min="5" max="600" step="5" value="10" required>
                     </div>
                 </div>
                 <!-- Time Block -->
