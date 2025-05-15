@@ -419,8 +419,36 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Right side: Action Buttons (Edit/Delete) -->
+                            <!-- Right side: Action Buttons (Reorder/Edit/Delete) -->
                             <div class="flex-shrink-0 flex items-center gap-1">
+                                <!-- Reorder buttons -->
+                                <div class="flex flex-col mr-1" {% if task.is_completed %}style="opacity: 0.5;"{% endif %}>
+                                    <form action="{{ url_for('move_task_up', task_id=task.id) }}" method="POST" class="flex-shrink-0">
+                                        <button 
+                                            type="submit" 
+                                            class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0.5 transition"
+                                            aria-label="Move task up: {{ task.description }}"
+                                            {% if task.is_completed %}disabled{% endif %}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up">
+                                                <path d="m18 15-6-6-6 6"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('move_task_down', task_id=task.id) }}" method="POST" class="flex-shrink-0">
+                                        <button 
+                                            type="submit" 
+                                            class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0.5 transition"
+                                            aria-label="Move task down: {{ task.description }}"
+                                            {% if task.is_completed %}disabled{% endif %}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down">
+                                                <path d="m6 9 6 6 6-6"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                                <!-- Edit button -->
                                 <button 
                                     type="button"
                                     class="edit-task-btn text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-1 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -433,6 +461,7 @@
                                         <path d="m15 5 4 4"/>
                                     </svg>
                                 </button>
+                                <!-- Delete button -->
                                 <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" class="flex-shrink-0">
                                     <button 
                                         type="submit" 

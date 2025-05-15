@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 from hijri_converter import Gregorian
 import locale
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -60,9 +60,10 @@ class Task(db.Model):
     is_completed = db.Column(db.Boolean, default=False)
     priority = db.Column(db.String(20), default='medium')
     time_block = db.Column(db.String(20), default='any')
+    order_index = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     
     def to_dict(self):
         return {
@@ -72,6 +73,7 @@ class Task(db.Model):
             'isCompleted': self.is_completed,
             'priority': self.priority,
             'timeBlock': self.time_block,
+            'orderIndex': self.order_index,
             'categoryId': self.category_id
         }
 
@@ -154,10 +156,10 @@ def register():
         learning_category = default_categories[3]
         
         sample_tasks = [
-            Task(description='Morning workout', estimated_time=45, is_completed=False, priority='medium', time_block='morning', user=new_user, category=health_category),
-            Task(description='Team meeting', estimated_time=60, is_completed=False, priority='high', time_block='morning', user=new_user, category=work_category),
-            Task(description='Work on Project X', estimated_time=120, is_completed=False, priority='high', time_block='afternoon', user=new_user, category=work_category),
-            Task(description='Read documentation', estimated_time=30, is_completed=True, priority='low', time_block='any', user=new_user, category=learning_category)
+            Task(description='Morning workout', estimated_time=45, is_completed=False, priority='medium', time_block='morning', user=new_user, category=health_category, order_index=1),
+            Task(description='Team meeting', estimated_time=60, is_completed=False, priority='high', time_block='morning', user=new_user, category=work_category, order_index=2),
+            Task(description='Work on Project X', estimated_time=120, is_completed=False, priority='high', time_block='afternoon', user=new_user, category=work_category, order_index=3),
+            Task(description='Read documentation', estimated_time=30, is_completed=True, priority='low', time_block='any', user=new_user, category=learning_category, order_index=4)
         ]
         
         db.session.add(new_user)
@@ -227,6 +229,8 @@ def sort_tasks(tasks):
     def task_sort_key(task):
         # First by completion status (incomplete first)
         completion_key = 1 if task.is_completed else 0
+        # Then by custom order index if set (lower index first)
+        order_key = task.order_index if task.order_index is not None else 999
         # Then by time block
         block_key = time_block_order.get(task.time_block, 99)
         # Then by priority
@@ -234,7 +238,7 @@ def sort_tasks(tasks):
         # Finally alphabetically
         name_key = task.description.lower()
         
-        return (completion_key, block_key, priority_key, name_key)
+        return (completion_key, order_key, block_key, priority_key, name_key)
     
     return sorted(tasks, key=task_sort_key)
 
@@ -253,6 +257,7 @@ def add_task():
     priority = request.form.get('priority')
     time_block = request.form.get('time_block')
     category_id = request.form.get('category_id')
+    order_index = request.form.get('order_index', 0)
     
     if not description or not estimated_time or int(estimated_time) <= 0:
         flash('Please enter a valid task description and estimated time.')
@@ -266,13 +271,17 @@ def add_task():
     else:
         category_id = None
     
+    # Get the highest order_index for the user's tasks
+    highest_order = db.session.query(db.func.max(Task.order_index)).filter_by(user_id=current_user.id).scalar() or 0
+    
     new_task = Task(
         description=description,
         estimated_time=int(estimated_time),
         priority=priority,
         time_block=time_block,
         category_id=category_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        order_index=highest_order + 1  # Set new task to be at the end of the list
     )
     
     db.session.add(new_task)
@@ -400,6 +409,45 @@ def delete_category(category_id):
     
     db.session.delete(category)
     db.session.commit()
+    return redirect(url_for('dashboard'))
+
+# Routes for task ordering
+@app.route('/move_task_up/<int:task_id>', methods=['POST'])
+@login_required
+def move_task_up(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    
+    # Find the task with the next lower order_index (the task above this one)
+    prev_task = Task.query.filter(
+        Task.user_id == current_user.id,
+        Task.order_index < task.order_index,
+        Task.is_completed == task.is_completed  # Only swap with tasks of same completion status
+    ).order_by(Task.order_index.desc()).first()
+    
+    if prev_task:
+        # Swap order_index values
+        task.order_index, prev_task.order_index = prev_task.order_index, task.order_index
+        db.session.commit()
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/move_task_down/<int:task_id>', methods=['POST'])
+@login_required
+def move_task_down(task_id):
+    task = Task.query.filter_by(id=task_id, user_id=current_user.id).first_or_404()
+    
+    # Find the task with the next higher order_index (the task below this one)
+    next_task = Task.query.filter(
+        Task.user_id == current_user.id,
+        Task.order_index > task.order_index,
+        Task.is_completed == task.is_completed  # Only swap with tasks of same completion status
+    ).order_by(Task.order_index).first()
+    
+    if next_task:
+        # Swap order_index values
+        task.order_index, next_task.order_index = next_task.order_index, task.order_index
+        db.session.commit()
+    
     return redirect(url_for('dashboard'))
 
 # Create the database tables
