@@ -393,6 +393,45 @@ def edit_subtask(subtask_id):
     db.session.commit()
     return redirect(url_for('dashboard'))
 
+@app.route('/move_subtask_up/<int:subtask_id>', methods=['POST'])
+@login_required
+def move_subtask_up(subtask_id):
+    subtask = Subtask.query.join(Task).filter(Subtask.id == subtask_id, Task.user_id == current_user.id).first_or_404()
+    
+    # Find the subtask with the next lower order_index (the subtask above this one)
+    prev_subtask = Subtask.query.filter(
+        Subtask.task_id == subtask.task_id,
+        Subtask.order_index < subtask.order_index,
+        Subtask.is_completed == subtask.is_completed  # Only swap with subtasks of same completion status
+    ).order_by(Subtask.order_index.desc()).first()
+    
+    if prev_subtask:
+        # Swap order_index values
+        subtask.order_index, prev_subtask.order_index = prev_subtask.order_index, subtask.order_index
+        db.session.commit()
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/move_subtask_down/<int:subtask_id>', methods=['POST'])
+@login_required
+def move_subtask_down(subtask_id):
+    subtask = Subtask.query.join(Task).filter(Subtask.id == subtask_id, Task.user_id == current_user.id).first_or_404()
+    
+    # Find the subtask with the next higher order_index (the subtask below this one)
+    next_subtask = Subtask.query.filter(
+        Subtask.task_id == subtask.task_id,
+        Subtask.order_index > subtask.order_index,
+        Subtask.is_completed == subtask.is_completed  # Only swap with subtasks of same completion status
+    ).order_by(Subtask.order_index).first()
+    
+    if next_subtask:
+        # Swap order_index values
+        subtask.order_index, next_subtask.order_index = next_subtask.order_index, subtask.order_index
+        db.session.commit()
+    
+    return redirect(url_for('dashboard'))
+
+
 @app.route('/delete_subtask/<int:subtask_id>', methods=['POST'])
 @login_required
 def delete_subtask(subtask_id):

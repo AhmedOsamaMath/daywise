@@ -80,7 +80,6 @@
             });
         });
 
-
         // Show category modal
         document.getElementById('add-category-btn').addEventListener('click', function() {
             document.getElementById('category-modal').classList.remove('hidden');
@@ -557,8 +556,35 @@
                                         {{ subtask.description }}
                                     </p>
                                 </div>
-                                <!-- Right side: Action Buttons (Edit/Delete) -->
+                                <!-- Right side: Action Buttons (Reorder/Edit/Delete) -->
                                 <div class="flex-shrink-0 flex items-center gap-1">
+                                    <!-- Reorder buttons -->
+                                    <div class="flex flex-col mr-1" {% if subtask.is_completed %}style="opacity: 0.5;"{% endif %}>
+                                        <form action="{{ url_for('move_subtask_up', subtask_id=subtask.id) }}" method="POST" class="flex-shrink-0">
+                                            <button 
+                                                type="submit" 
+                                                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0.5 transition"
+                                                aria-label="Move subtask up: {{ subtask.description }}"
+                                                {% if subtask.is_completed %}disabled{% endif %}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up">
+                                                    <path d="m18 15-6-6-6 6"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        <form action="{{ url_for('move_subtask_down', subtask_id=subtask.id) }}" method="POST" class="flex-shrink-0">
+                                            <button 
+                                                type="submit" 
+                                                class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 dark:focus:ring-offset-gray-800 rounded p-0.5 transition"
+                                                aria-label="Move subtask down: {{ subtask.description }}"
+                                                {% if subtask.is_completed %}disabled{% endif %}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down">
+                                                    <path d="m6 9 6 6 6-6"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
                                     <!-- Edit button -->
                                     <button 
                                         type="button"
